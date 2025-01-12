@@ -1,6 +1,7 @@
 package com.bookstore.service.impl;
 
 import com.bookstore.exception.BookNotFoundException;
+import com.bookstore.exception.InvalidInputException;
 import com.bookstore.model.Book;
 import com.bookstore.repository.BookRepository;
 import com.bookstore.service.BookService;
@@ -48,5 +49,20 @@ public class BookServiceImpl implements BookService {
     public void deleteBook(Long id) {
         Book existingBook = getBookById(id);  // Check if the book exists before deletion
         bookRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Book> searchBooks(Long id, String title, String author) {
+        if (id != null) {
+            return bookRepository.findById(id)
+                    .map(List::of)
+                    .orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + id));
+        } else if (title != null) {
+            return bookRepository.findByTitleContainingIgnoreCase(title);
+        } else if (author != null) {
+            return bookRepository.findByAuthorContainingIgnoreCase(author);
+        } else {
+            throw new InvalidInputException("At least one search parameter must be provided.");
+        }
     }
 }

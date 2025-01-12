@@ -9,4 +9,5 @@ public interface OrderService {
     Order getOrderById(Long id);
     Order placeOrder(Order order);
     void cancelOrder(Long id);
+    List<Order> searchOrders(Long id, String bookName);
 }

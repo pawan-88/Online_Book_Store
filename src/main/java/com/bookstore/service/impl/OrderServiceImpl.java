@@ -1,7 +1,8 @@
 package com.bookstore.service.impl;
 
-import com.bookstore.exceptions.BookNotFoundException;
-import com.bookstore.exceptions.OrderNotFoundException;
+import com.bookstore.exception.BookNotFoundException;
+import com.bookstore.exception.InvalidInputException;
+import com.bookstore.exception.OrderNotFoundException;
 import com.bookstore.model.Book;
 import com.bookstore.model.Order;
 import com.bookstore.model.OrderBook;
@@ -9,6 +10,7 @@ import com.bookstore.repository.BookRepository;
 import com.bookstore.repository.OrderBooksRepository;
 import com.bookstore.repository.OrderRepository;
 import com.bookstore.service.OrderService;
+import com.bookstore.util.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
@@ -40,6 +42,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Order placeOrder(Order order) {
+        Validation.validateOrder(order);
         // Calculate total price based on the books in the order
         double totalPrice = order.getBooks().stream()
                 .map(book -> bookRepository.findById(book.getId())
@@ -75,5 +78,18 @@ public class OrderServiceImpl implements OrderService {
             throw new OrderNotFoundException("Order not found with ID: " + id);
         }
         orderRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Order> searchOrders(Long id, String bookName) {
+        if (id != null) {
+            return orderRepository.findById(id)
+                    .map(List::of)
+                    .orElseThrow(() -> new RuntimeException("Order not found with ID: " + id));
+        } else if (bookName != null) {
+            return orderRepository.findByBooks_TitleContainingIgnoreCase(bookName);
+        } else {
+            throw new InvalidInputException("At least one search parameter must be provided.");
+        }
     }
 }
