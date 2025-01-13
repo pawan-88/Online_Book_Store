@@ -1,6 +1,7 @@
 package com.bookstore.model;
 
-import jakarta.persistence.*;
+
+import javax.persistence.*;
 
 @Entity
 @Table(name = "order_books")
