@@ -17,4 +17,10 @@ public interface BookService {
     void deleteBook(Long id);
 
     List<Book> searchBooks(Long id, String title, String author);
+
+    List<Book> addBooks(List<Book> books);
+
+    String generateShareableLink(Long bookId,  String uniqueId);
+
+    Book getBookByShareableLink(String uniqueId);
 }
