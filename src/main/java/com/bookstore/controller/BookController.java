@@ -25,40 +25,48 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<Book> addBook(@RequestBody Book book) {
+    public ResponseEntity<String> addBook(@RequestBody Book book) {
         Validation.validateBook(book);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(bookService.addBook(book));
+        Book book1 = bookService.addBook(book);
+        return ResponseEntity.status(HttpStatus.CREATED).body("Book added Successfully: " + book1);
     }
 
     @PostMapping("/bulk")
-    public ResponseEntity<List<Book>> addBooks(@RequestBody List<Book> books) {
+    public ResponseEntity<String> addBooks(@RequestBody List<Book> books) {
         books.forEach(Validation::validateBook);
+        List<Book> addedBooks = bookService.addBooks(books);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(bookService.addBooks(books));
+                .body(addedBooks.size() + " books added successfully.");
     }
 
     @GetMapping
     public ResponseEntity<List<Book>> getAllBooks() {
-        return ResponseEntity.ok(bookService.getAllBooks());
+        List<Book> books = bookService.getAllBooks();
+        return ResponseEntity.ok(books);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Book> getBookById(@PathVariable Long id) {
         Validation.validateId(id);
-        return ResponseEntity.ok(bookService.getBookById(id));
+        Book book = bookService.getBookById(id);
+        return book != null ? ResponseEntity.ok(book) : ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Book> updateBook(@PathVariable Long id, @RequestBody Book book) {
-        return ResponseEntity.ok(bookService.updateBook(id, book));
+    public ResponseEntity<String> updateBook(@PathVariable Long id, @RequestBody Book book) {
+        Book book1 = bookService.updateBook(id, book);
+        return ResponseEntity.status(HttpStatus.OK).body("Updated Successfully: "+ book1);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+    public ResponseEntity<String> deleteBook(@PathVariable Long id) {
         Validation.validateId(id);
-        bookService.deleteBook(id);
-        return ResponseEntity.status(HttpStatus.OK).body(null);
+        boolean deleted = bookService.deleteBook(id);
+        if (deleted) {
+            return ResponseEntity.status(HttpStatus.OK).body("Book with ID " + id + " deleted successfully.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Book with ID " + id + " not found.");
+        }
     }
 
     // Search API

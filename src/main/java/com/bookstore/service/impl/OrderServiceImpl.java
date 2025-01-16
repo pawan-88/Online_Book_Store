@@ -73,11 +73,12 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public void cancelOrder(Long id) {
+    public boolean cancelOrder(Long id) {
         if (!orderRepository.existsById(id)) {
             throw new OrderNotFoundException("Order not found with ID: " + id);
         }
         orderRepository.deleteById(id);
+        return false;
     }
 
     @Override

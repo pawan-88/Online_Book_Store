@@ -8,6 +8,6 @@ public interface OrderService {
     List<Order> getAllOrders();
     Order getOrderById(Long id);
     Order placeOrder(Order order);
-    void cancelOrder(Long id);
+    boolean cancelOrder(Long id);
     List<Order> searchOrders(Long id, String bookName);
 }

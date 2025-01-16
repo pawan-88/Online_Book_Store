@@ -27,4 +27,9 @@ public class GlobalExceptionHandler {
     public ResponseEntity<String> handleInvalidInput(InvalidInputException ex) {
         return new ResponseEntity<>("Invalid input: " + ex.getMessage(), HttpStatus.BAD_REQUEST);
     }
+
+    @ExceptionHandler(CartException.class)
+    public ResponseEntity<String> handleCartException(CartException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
 }

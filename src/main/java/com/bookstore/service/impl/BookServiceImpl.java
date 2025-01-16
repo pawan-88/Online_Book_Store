@@ -56,9 +56,10 @@ public class BookServiceImpl implements BookService {
     }
 
     @Override
-    public void deleteBook(Long id) {
+    public Boolean deleteBook(Long id) {
         Book existingBook = getBookById(id);  // Check if the book exists before deletion
         bookRepository.deleteById(id);
+        return null;
     }
 
     @Override

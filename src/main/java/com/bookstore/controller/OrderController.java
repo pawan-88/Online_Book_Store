@@ -24,27 +24,34 @@ public class OrderController {
 
     @GetMapping
     public ResponseEntity<List<Order>> getAllOrders() {
-        return ResponseEntity.ok(orderService.getAllOrders());
+        List<Order> order = orderService.getAllOrders();
+        return ResponseEntity.status(HttpStatus.OK).body(order);
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
         Validation.validateId(id);
-        return ResponseEntity.ok(orderService.getOrderById(id));
+        Order order = orderService.getOrderById(id);
+        return order != null ? ResponseEntity.ok(order) : ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
     }
 
     @PostMapping
-    public ResponseEntity<Order> placeOrder(@RequestBody Order order) {
+    public ResponseEntity<String> placeOrder(@RequestBody Order order) {
         Validation.validateOrder(order);   // Validate input types
+        Order placedOrder = orderService.placeOrder(order);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(orderService.placeOrder(order));
+                .body("Order with ID " + placedOrder.getId() + " placed successfully.");
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> cancelOrder(@PathVariable Long id) {
+    public ResponseEntity<String> cancelOrder(@PathVariable Long id) {
         Validation.validateId(id);
-        orderService.cancelOrder(id);
-        return ResponseEntity.status(HttpStatus.OK).body(null);
+        boolean canceled = orderService.cancelOrder(id);
+        if (canceled) {
+            return ResponseEntity.status(HttpStatus.OK).body("Order with ID " + id + " has been canceled.");
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order with ID " + id + " not found.");
+        }
     }
 
     // Search API
