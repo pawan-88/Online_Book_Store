@@ -1,5 +1,6 @@
 package com.bookstore.dto;
 
+
 public class AuthRequest {
 
     private String username;

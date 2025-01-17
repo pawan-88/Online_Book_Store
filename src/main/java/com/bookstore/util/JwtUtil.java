@@ -1,58 +1,80 @@
 package com.bookstore.util;
 
 import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.security.Keys;
-import org.springframework.stereotype.Component;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.stereotype.Component;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.Map;
+import java.util.function.Function;
 
 @Component
 public class JwtUtil {
 
-    private final long JWT_EXPIRATION = 604800000L;  // 1 week in milliseconds
+    // Token expiration time (10 hours)
+    private final long JWT_EXPIRATION_TIME = 1000 * 60 * 60 * 10;
 
-    // Generate a secure key of at least 256 bits for HMAC-SHA256
-    private final Key key = Keys.secretKeyFor(SignatureAlgorithm.HS256);
+    // Updated: Generate a secure key dynamically for HS512
+    private final Key signingKey = Keys.secretKeyFor(SignatureAlgorithm.HS512); // Secure and correct key size for HS512
 
-    // Generate a JWT token for the given username.
     public String generateToken(String username) {
-        Date now = new Date();
-        Date expiryDate = new Date(now.getTime() + JWT_EXPIRATION);
-
         return Jwts.builder()
-                .setSubject(username)
-                .setIssuedAt(now)
-                .setExpiration(expiryDate)
-                .signWith(key)
-                .compact();
+                .setSubject(username) // Set username as the token's subject
+                .setIssuedAt(new Date()) // Token issue time
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_TIME)) // Token expiration
+                .signWith(signingKey, SignatureAlgorithm.HS512) // Sign token with secure key and algorithm
+                .compact(); // Build the token
     }
 
-    // Validate the given JWT token.
-    public boolean validateToken(String token) {
-        try {
-            Jwts.parserBuilder()
-                    .setSigningKey(key)
-                    .build()
-                    .parseClaimsJws(token);
-            return true;
-        } catch (JwtException | IllegalArgumentException ex) {
-            System.out.println("Invalid JWT Token: " + ex.getMessage());
-            return false;
-        }
+    public Claims parseToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey) // Use the secure key for parsing
+                .build()
+                .parseClaimsJws(token)
+                .getBody(); // Extract the claims
     }
 
-    // Extract the username (subject) from the given JWT token.
     public String getUsernameFromToken(String token) {
-        Claims claims = Jwts.parserBuilder()
-                .setSigningKey(key)
+        return getClaimFromToken(token, Claims::getSubject);
+    }
+
+    public Date getExpirationDateFromToken(String token) {
+        return getClaimFromToken(token, Claims::getExpiration);
+    }
+
+    public <T> T getClaimFromToken(String token, Function<Claims, T> claimsResolver) {
+        final Claims claims = getAllClaimsFromToken(token);
+        return claimsResolver.apply(claims);
+    }
+
+    private Claims getAllClaimsFromToken(String token) {
+        return Jwts.parserBuilder()
+                .setSigningKey(signingKey) // Use the secure key for parsing
                 .build()
                 .parseClaimsJws(token)
                 .getBody();
+    }
 
-        return claims.getSubject();
+    private boolean isTokenExpired(String token) {
+        return getExpirationDateFromToken(token).before(new Date());
+    }
+
+    public boolean validateToken(String token, UserDetails userDetails) {
+        final String username = getUsernameFromToken(token);
+        return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
+    }
+
+    public String doGenerateToken(Map<String, Object> claims, String subject) {
+        return Jwts.builder()
+                .setClaims(claims)
+                .setSubject(subject)
+                .setIssuedAt(new Date(System.currentTimeMillis()))
+                .setExpiration(new Date(System.currentTimeMillis() + JWT_EXPIRATION_TIME))
+                .signWith(signingKey, SignatureAlgorithm.HS512) // Use secure key and algorithm
+                .compact();
     }
 }
