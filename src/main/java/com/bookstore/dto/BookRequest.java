@@ -13,6 +13,7 @@ public class BookRequest {
     private RackRequest rack;
     private String status;
 
+
     // Getters and setters
 
 
