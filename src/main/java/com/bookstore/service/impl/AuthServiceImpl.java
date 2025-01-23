@@ -36,6 +36,8 @@ public class AuthServiceImpl implements AuthService, UserDetailsService {
         this.jwtUtil = jwtUtil;
     }
 
+    //baseResponse class exception handling
+    //
     @Override
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {

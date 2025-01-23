@@ -11,11 +11,9 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -24,14 +22,11 @@ import java.io.IOException;
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private Logger logger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
+    private static final Logger authLogger = LoggerFactory.getLogger(JwtAuthenticationFilter.class);
 
     @Autowired
     private JwtUtil jwtUtil;
 
-    @Autowired
-    @Lazy
-    private UserDetailsService userDetailsService;
     @Autowired
     private AuthService authService;
 
@@ -39,43 +34,62 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        String requestHeader = request.getHeader("Authorization");
+        String jwtToken = extractTokenFromHeader(request);
         String username = null;
-        String token = null;
 
-        if (requestHeader != null && requestHeader.startsWith("Bearer ")) {
-            token = requestHeader.substring(7).trim();
+        if (jwtToken != null) {
             try {
-                username = this.jwtUtil.getUsernameFromToken(token);
-            } catch (IllegalArgumentException e) {
-                logger.info("Illegal Argument while fetching the username !!");
-                e.printStackTrace();
-            } catch (ExpiredJwtException e) {
-                logger.info("Given jwt token is expired !!");
-                e.printStackTrace();
-            } catch (MalformedJwtException e) {
-                logger.info("Token is invalid !!");
-                e.printStackTrace();
+                username = jwtUtil.getUsernameFromToken(jwtToken);
             } catch (Exception e) {
-                e.printStackTrace();
+                handleTokenException(e);
             }
         }
 
-        // If a valid username is found in the token and no authentication exists in the SecurityContext
         if (username != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            UserDetails userDetails = authService.loadUserByUsername(username);
-            Boolean validateToken = this.jwtUtil.validateToken(token, userDetails);
-
-            if (validateToken) {
-                UsernamePasswordAuthenticationToken authentication =
-                        new UsernamePasswordAuthenticationToken(
-                                userDetails, null, userDetails.getAuthorities());
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-            } else {
-                logger.info("Token validation failed !!");
-            }
+            validateAndAuthenticateUser(jwtToken, username);
         }
+
         filterChain.doFilter(request, response);
     }
 
+    /**
+     * Extracts the JWT token from the Authorization header.
+     */
+    private String extractTokenFromHeader(HttpServletRequest request) {
+        String authorizationHeader = request.getHeader("Authorization");
+        if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+            return authorizationHeader.substring(7).trim();
+        }
+        return null;
+    }
+
+    /**
+     * Handles exceptions related to JWT token parsing and validation.
+     */
+    private void handleTokenException(Exception e) {
+        if (e instanceof IllegalArgumentException) {
+            authLogger.info("Illegal Argument while fetching the username!");
+        } else if (e instanceof ExpiredJwtException) {
+            authLogger.info("The JWT token is expired!");
+        } else if (e instanceof MalformedJwtException) {
+            authLogger.info("The JWT token is invalid!");
+        } else {
+            authLogger.error("Unexpected error during JWT processing!", e);
+        }
+    }
+
+    /**
+     * Validates the token and sets up authentication in the SecurityContext.
+     */
+    private void validateAndAuthenticateUser(String jwtToken, String username) {
+        UserDetails userDetails = authService.loadUserByUsername(username);
+
+        if (jwtUtil.validateToken(jwtToken, userDetails)) {
+            UsernamePasswordAuthenticationToken authenticationToken =
+                    new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            SecurityContextHolder.getContext().setAuthentication(authenticationToken);
+        } else {
+            authLogger.info("Token validation failed!");
+        }
+    }
 }

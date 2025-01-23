@@ -12,6 +12,8 @@ public interface BookService {
 
     Book getBookById(Long id);
 
+//   Book allocateBookToRack(Long id, Long rackId);
+
     Book updateBook(Long id, Book book);
 
     Boolean deleteBook(Long id);

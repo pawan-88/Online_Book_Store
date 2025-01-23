@@ -2,17 +2,15 @@ package com.bookstore.controller;
 
 import com.bookstore.model.Book;
 import com.bookstore.service.BookService;
+import com.bookstore.util.BaseResponse;
 import com.bookstore.util.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/books")
@@ -25,90 +23,275 @@ public class BookController {
         this.bookService = bookService;
     }
 
-    @PreAuthorize("hasRole('USER')")
     @PostMapping
-    public ResponseEntity<String> addBook(@RequestBody Book book) {
-        Validation.validateBook(book);
-        Book book1 = bookService.addBook(book);
-        return ResponseEntity.status(HttpStatus.CREATED).body("Book added Successfully: " + book1);
-    }
+    public ResponseEntity<BaseResponse<Book>> addBook(@RequestBody Book book) {
+        String requestId = null;
+        try {
+            Book savedBook = bookService.addBook(book);
 
-    @PostMapping("/bulk")
-    public ResponseEntity<String> addBooks(@RequestBody List<Book> books) {
-        books.forEach(Validation::validateBook);
-        List<Book> addedBooks = bookService.addBooks(books);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body(addedBooks.size() + " books added successfully.");
-    }
-
-    @GetMapping
-    public ResponseEntity<List<Book>> getAllBooks() {
-        List<Book> books = bookService.getAllBooks();
-        return ResponseEntity.ok(books);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Book> getBookById(@PathVariable Long id) {
-        Validation.validateId(id);
-        Book book = bookService.getBookById(id);
-        return book != null ? ResponseEntity.ok(book) : ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntity<String> updateBook(@PathVariable Long id, @RequestBody Book book) {
-        Book book1 = bookService.updateBook(id, book);
-        return ResponseEntity.status(HttpStatus.OK).body("Updated Successfully: "+ book1);
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> deleteBook(@PathVariable Long id) {
-        Validation.validateId(id);
-        boolean deleted = bookService.deleteBook(id);
-        if (deleted) {
-            return ResponseEntity.status(HttpStatus.OK).body("Book with ID " + id + " deleted successfully.");
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Book with ID " + id + " not found.");
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new BaseResponse<>(
+                            requestId,
+                            savedBook,
+                            new BaseResponse.ResponseMessage("201", "Book added successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
         }
     }
 
-    // Search API
-    @GetMapping("/search")
-    public ResponseEntity<List<Book>> searchBooks(
-            @RequestParam(required = false) Long id,
-            @RequestParam(required = false) String title,
-            @RequestParam(required = false) String author) {
+    @PostMapping("/bulk")
+    public ResponseEntity<BaseResponse<List<Book>>> addBooks(@RequestBody List<Book> books) {
+        String requestId = null;
+        try {
+            books.forEach(Validation::validateBook);
+            List<Book> addedBooks = bookService.addBooks(books);
 
-        Validation.validateSearchParameters(id, title, author, "Book");
-        List<Book> books = bookService.searchBooks(id, title, author);
-        return ResponseEntity.ok(books);
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new BaseResponse<>(
+                            requestId,
+                            addedBooks,
+                            new BaseResponse.ResponseMessage("201", addedBooks.size() + " books added successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
+        }
     }
 
-    // Generate book link
-    @PostMapping("/{id}/share")
-    public ResponseEntity<Map<String,String>> shareBook(@PathVariable Long id) {
+    // API: Get Book Location
+//    @GetMapping("/{id}/location")
+//    public ResponseEntity<BaseResponse<String>> getBookLocation(@PathVariable Long id) {
+//        String requestId = null;
+//        try {
+//            Book book = bookService.getBookById(id);
+//            if (book.getBookLocation() == null) {
+//                throw new RuntimeException("Book location not assigned.");
+//            }
+//            return ResponseEntity.ok(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            book.getBookLocation(),
+//                            new BaseResponse.ResponseMessage("200", "Book location retrieved successfully.", null)
+//                    )
+//            );
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            null,
+//                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+//                    )
+//            );
+//        }
+//    }
+
+// API: Allocate Book to Rack
+//    @PostMapping("/{id}/allocate")
+//    public ResponseEntity<BaseResponse<String>> allocateBookToRack(
+//            @PathVariable Long id,
+//            @RequestParam Long rackId
+//    ) {
+//        String requestId = null;
+//        try {
+//            bookService.allocateBookToRack(id, rackId);
+//            return ResponseEntity.ok(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            "Book allocated to rack successfully.",
+//                            new BaseResponse.ResponseMessage("200", "Book allocated to rack successfully.", null)
+//                    )
+//            );
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            null,
+//                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+//                    )
+//            );
+//        }
+//    }
+
+    @GetMapping
+    public ResponseEntity<BaseResponse<List<Book>>> getAllBooks() {
+        String requestId = null;
+        List<Book> books = bookService.getAllBooks();
+        return ResponseEntity.ok(
+                new BaseResponse<>(
+                        requestId,
+                        books,
+                        new BaseResponse.ResponseMessage("200", "Books retrieved successfully.", null)
+                )
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BaseResponse<Book>> getBookById(@PathVariable Long id) {
+        String requestId = null;
         try {
-            String uniqueId = UUID.randomUUID().toString();
-            String shareableLink = bookService.generateShareableLink(id,uniqueId);
-            // Return the link and unique ID in the response body
+            Validation.validateId(id);
+            Book book = bookService.getBookById(id);
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            book,
+                            new BaseResponse.ResponseMessage("200", "Book retrieved successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
+        }
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<BaseResponse<Book>> updateBook(@PathVariable Long id, @RequestBody Book book) {
+        String requestId = null;
+        try {
+            Book updatedBook = bookService.updateBook(id, book);
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            updatedBook,
+                            new BaseResponse.ResponseMessage("200", "Book updated successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BaseResponse<String>> deleteBook(@PathVariable Long id) {
+        String requestId = null;
+        try {
+            Validation.validateId(id); // Ensure the ID is valid
+            boolean isSoftDeleted = bookService.deleteBook(id);
+
+            if (isSoftDeleted) {
+                return ResponseEntity.ok(
+                        new BaseResponse<>(
+                                requestId,
+                                "Book with ID " + id + " is now inactive.",
+                                new BaseResponse.ResponseMessage("200", "Book marked as inactive.", null)
+                        )
+                );
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
+        }
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<BaseResponse<List<Book>>> searchBooks(
+            @RequestParam(required = false) Long id,
+            @RequestParam(required = false) String title,
+            @RequestParam(required = false) String author
+    ) {
+        String requestId = null;
+        try {
+            Validation.validateSearchParameters(id, title, author, "Book");
+            List<Book> books = bookService.searchBooks(id, title, author);
+
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            books,
+                            new BaseResponse.ResponseMessage("200", "Books retrieved successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
+        }
+    }
+
+    @PostMapping("/{id}/share")
+    public ResponseEntity<BaseResponse<Map<String, String>>> shareBook(@PathVariable Long id) {
+        String requestId = null;
+        try {
+            String uniqueId = null;
+            String shareableLink = bookService.generateShareableLink(id, uniqueId);
+
             Map<String, String> response = new HashMap<>();
             response.put("shareableLink", shareableLink);
             response.put("uniqueId", uniqueId);
 
-            return ResponseEntity.ok(response);
-        } catch (RuntimeException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(Map.of("error", "Error: " + ex.getMessage()));
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            response,
+                            new BaseResponse.ResponseMessage("200", "Shareable link generated successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
         }
     }
 
-    // Get book name by using Unique Id
     @GetMapping("/shared/{uniqueId}")
-    public ResponseEntity<Book> getSharedBook(@PathVariable String uniqueId) {
+    public ResponseEntity<BaseResponse<Book>> getSharedBook(@PathVariable String uniqueId) {
+        String requestId = null;
         try {
             Book book = bookService.getBookByShareableLink(uniqueId);
-            return ResponseEntity.ok(book);
-        } catch (RuntimeException ex) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            book,
+                            new BaseResponse.ResponseMessage("200", "Book retrieved successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
         }
     }
 }

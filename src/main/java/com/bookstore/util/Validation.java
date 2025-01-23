@@ -1,5 +1,6 @@
 package com.bookstore.util;
 
+import com.bookstore.dto.CartItemRequestDTO;
 import com.bookstore.exception.InvalidInputException;
 import com.bookstore.model.Book;
 import com.bookstore.model.Order;
@@ -44,6 +45,20 @@ public class Validation {
     public static void validateSearchParameters(Long id, String name, String author, String entity) {
         if (id == null && (name == null || name.trim().isEmpty()) && (author == null || author.trim().isEmpty())) {
             throw new InvalidInputException("At least one search parameter must be provided for " + entity + ".");
+        }
+    }
+
+    public static void validateCartItem(CartItemRequestDTO cartItemRequestDTO) {
+        if (cartItemRequestDTO == null) {
+            throw new IllegalArgumentException("Cart item request cannot be null.");
+        }
+
+        if (cartItemRequestDTO.getBookId() == null || cartItemRequestDTO.getBookId() <= 0) {
+            throw new IllegalArgumentException("Invalid book ID provided in the cart item.");
+        }
+
+        if (cartItemRequestDTO.getQuantity() == null || cartItemRequestDTO.getQuantity() <= 0) {
+            throw new IllegalArgumentException("Invalid quantity provided in the cart item.");
         }
     }
 }

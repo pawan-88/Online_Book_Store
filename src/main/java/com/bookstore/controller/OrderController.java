@@ -1,15 +1,15 @@
 package com.bookstore.controller;
 
-import com.bookstore.model.Book;
-import com.bookstore.util.Validation;
 import com.bookstore.model.Order;
 import com.bookstore.service.OrderService;
+import com.bookstore.util.BaseResponse;
+import com.bookstore.util.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -22,47 +22,124 @@ public class OrderController {
         this.orderService = orderService;
     }
 
-    @GetMapping
-    public ResponseEntity<List<Order>> getAllOrders() {
-        List<Order> order = orderService.getAllOrders();
-        return ResponseEntity.status(HttpStatus.OK).body(order);
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntity<Order> getOrderById(@PathVariable Long id) {
-        Validation.validateId(id);
-        Order order = orderService.getOrderById(id);
-        return order != null ? ResponseEntity.ok(order) : ResponseEntity.status(HttpStatus.NOT_FOUND).body(null);
-    }
-
     @PostMapping
-    public ResponseEntity<String> placeOrder(@RequestBody Order order) {
-        Validation.validateOrder(order);   // Validate input types
-        Order placedOrder = orderService.placeOrder(order);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("Order with ID " + placedOrder.getId() + " placed successfully.");
-    }
+    public ResponseEntity<BaseResponse<Order>> placeOrder(@RequestBody Order order) {
+        String requestId = null;
+        try {
+            Validation.validateOrder(order);
+            Order placedOrder = orderService.placeOrder(order);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<String> cancelOrder(@PathVariable Long id) {
-        Validation.validateId(id);
-        boolean canceled = orderService.cancelOrder(id);
-        if (canceled) {
-            return ResponseEntity.status(HttpStatus.OK).body("Order with ID " + id + " has been canceled.");
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Order with ID " + id + " not found.");
+            return ResponseEntity.status(HttpStatus.CREATED).body(
+                    new BaseResponse<>(
+                            requestId,
+                            placedOrder,
+                            new BaseResponse.ResponseMessage("201", "Order placed successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
         }
     }
 
-    // Search API
+    @GetMapping
+    public ResponseEntity<BaseResponse<List<Order>>> getAllOrders() {
+        String requestId = null;
+        List<Order> orders = orderService.getAllOrders();
+
+        return ResponseEntity.ok(
+                new BaseResponse<>(
+                        requestId,
+                        orders,
+                        new BaseResponse.ResponseMessage("200", "Orders retrieved successfully.", null)
+                )
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<BaseResponse<Order>> getOrderById(@PathVariable Long id) {
+        String requestId = null;
+        try {
+            Validation.validateId(id);
+            Order order = orderService.getOrderById(id);
+
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            order,
+                            new BaseResponse.ResponseMessage("200", "Order retrieved successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<BaseResponse<String>> cancelOrder(@PathVariable Long id) {
+        String requestId = null;
+        try {
+            Validation.validateId(id);
+            boolean canceled = orderService.cancelOrder(id);
+
+            if (canceled) {
+                return ResponseEntity.ok(
+                        new BaseResponse<>(
+                                requestId,
+                                "Order with ID " + id + " canceled successfully.",
+                                new BaseResponse.ResponseMessage("200", "Order canceled successfully.", null)
+                        )
+                );
+            } else {
+                throw new RuntimeException("Order with ID " + id + " not found.");
+            }
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("404", e.getMessage(), null)
+                    )
+            );
+        }
+    }
+
     @GetMapping("/search")
-    public ResponseEntity<List<Order>> searchOrders(
+    public ResponseEntity<BaseResponse<List<Order>>> searchOrders(
             @RequestParam(required = false) Long id,
             @RequestParam(required = false) String bookName) {
 
-        Validation.validateSearchParameters(id, bookName, null, "Order");
-        List<Order> orders = orderService.searchOrders(id, bookName);
-        return ResponseEntity.ok(orders);
+        String requestId = UUID.randomUUID().toString();
+        try {
+            Validation.validateSearchParameters(id, bookName, null, "Order");
+            List<Order> orders = orderService.searchOrders(id, bookName);
+
+            return ResponseEntity.ok(
+                    new BaseResponse<>(
+                            requestId,
+                            orders,
+                            new BaseResponse.ResponseMessage("200", "Orders retrieved successfully.", null)
+                    )
+            );
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                    new BaseResponse<>(
+                            requestId,
+                            null,
+                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+                    )
+            );
+        }
     }
 }
-

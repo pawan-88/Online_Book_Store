@@ -1,9 +1,17 @@
 package com.bookstore.dto;
 
 
+import jakarta.validation.constraints.Size;
+import org.antlr.v4.runtime.misc.NotNull;
+
 public class AuthRequest {
 
+    @NotNull
+    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
+
+    @NotNull
+    @Size(min = 8, message = "Password must be at least 8 characters long")
     private String password;
 
     public String getUsername() {
