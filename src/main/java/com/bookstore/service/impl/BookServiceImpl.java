@@ -1,5 +1,9 @@
 package com.bookstore.service.impl;
 
+import com.bookstore.dto.BlockDTO;
+import com.bookstore.dto.BookDTO;
+import com.bookstore.dto.RackDTO;
+import com.bookstore.dto.WarehouseDTO;
 import com.bookstore.exception.BookNotFoundException;
 import com.bookstore.exception.InvalidInputException;
 import com.bookstore.model.Block;
@@ -11,7 +15,6 @@ import com.bookstore.repository.BookRepository;
 import com.bookstore.repository.RackRepository;
 import com.bookstore.repository.WarehouseRepository;
 import com.bookstore.service.BookService;
-import com.bookstore.util.Validation;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -41,7 +44,7 @@ public class BookServiceImpl implements BookService {
 
     @Transactional
     @Override
-    public Book addBook(Book book) {
+    public BookDTO addBook(Book book) {
         // Handle Warehouse
         Warehouse warehouse = warehouseRepository.findByName(book.getWarehouse().getName());
         if (warehouse == null) {
@@ -87,33 +90,41 @@ public class BookServiceImpl implements BookService {
         book.setRack(rack);
 
         // Save the Book
-        return bookRepository.save(book); // Save the book after all relationships are established
+        Book savedBook = bookRepository.save(book); // Save the book after all relationships are established
+
+        // Convert Book entity to BookDTO
+        BookDTO bookDTO = new BookDTO();
+        bookDTO.setId(savedBook.getId());
+        bookDTO.setTitle(savedBook.getTitle());
+        bookDTO.setAuthor(savedBook.getAuthor());
+        bookDTO.setPrice(savedBook.getPrice());
+        bookDTO.setDescription(savedBook.getDescription());
+        bookDTO.setPublisher(savedBook.getPublisher());
+        bookDTO.setPublicationDate(savedBook.getPublicationDate());
+        bookDTO.setStatus(savedBook.getStatus());
+        // Set Warehouse DTO
+        WarehouseDTO warehouseDTO = new WarehouseDTO();
+        warehouseDTO.setId(warehouse.getId());
+        warehouseDTO.setName(warehouse.getName());
+        warehouseDTO.setLocation(warehouse.getLocation());
+        bookDTO.setWarehouse(warehouseDTO);
+
+        // Set Block DTO
+        BlockDTO blockDTO = new BlockDTO();
+        blockDTO.setId(block.getId());
+        blockDTO.setName(block.getName());
+        blockDTO.setWarehouseId(warehouse.getId()); // Instead of full warehouse details, only pass the ID
+        bookDTO.setBlock(blockDTO);
+
+        // Set Rack DTO
+        RackDTO rackDTO = new RackDTO();
+        rackDTO.setId(rack.getId());
+        rackDTO.setRackNumber(rack.getRackNumber());
+        rackDTO.setBlockId(block.getId()); // Instead of full block details, only pass the ID
+        bookDTO.setRack(rackDTO);
+
+        return bookDTO; // Return the BookDTO instead of the Book entity
     }
-
-    // Allocate Book to Rack
-//    @Override
-//    public Book allocateBookToRack(Long bookId, Long rackId) {
-//        Book book = bookRepository.findById(bookId)
-//                .orElseThrow(() -> new RuntimeException("Book not found with ID: " + bookId));
-//        Rack rack = rackRepository.findById(rackId)
-//                .orElseThrow(() -> new RuntimeException("Rack not found with ID: " + rackId));
-//        if (!rack.isAvailable()) {
-//            throw new RuntimeException("Rack is not available.");
-//        }
-//
-//        // Update rack and book
-//        rack.setAvailable(false);
-//        rack.setBook(book);
-//        book.setBookLocation(
-//                "Warehouse:" + rack.getBlock().getWarehouse().getId() +
-//                        ", Block:" + rack.getBlock().getName() +
-//                        ", Rack:" + rack.getRackNumber()
-//        );
-//        rackRepository.save(rack);
-//        bookRepository.save(book);
-//        return book;
-//    }
-
 
     @Override
     public List<Book> addBooks(List<Book> books) {
@@ -125,20 +136,54 @@ public class BookServiceImpl implements BookService {
         return bookRepository.findAll();
     }
 
+    @Transactional
     @Override
-    public Book getBookById(Long id) {
-        return bookRepository.findById(id)
-                .orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + id));
+    public BookDTO getBookById(Long id) {
+        Book book = bookRepository.findById(id).orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + id));
+
+        // Constructing the DTO with necessary information
+        BookDTO bookDto = new BookDTO();
+        bookDto.setId(book.getId());
+        bookDto.setTitle(book.getTitle());
+        bookDto.setAuthor(book.getAuthor());
+        bookDto.setPrice(book.getPrice());
+        bookDto.setDescription(book.getDescription());
+        bookDto.setPublisher(book.getPublisher());
+        bookDto.setPublicationDate(book.getPublicationDate());
+        bookDto.setStatus(book.getStatus());
+
+        // Add warehouse details with just the required information
+        WarehouseDTO warehouseDto = new WarehouseDTO();
+        warehouseDto.setId(book.getRack().getBlock().getWarehouse().getId());
+        warehouseDto.setName(book.getRack().getBlock().getWarehouse().getName());
+        warehouseDto.setLocation(book.getRack().getBlock().getWarehouse().getLocation());
+        bookDto.setWarehouse(warehouseDto);
+
+        // Add block details
+        BlockDTO blockDto = new BlockDTO();
+        blockDto.setId(book.getRack().getBlock().getId());
+        blockDto.setName(book.getRack().getBlock().getName());
+        blockDto.setWarehouseId(book.getRack().getBlock().getWarehouse().getId());
+        bookDto.setBlock(blockDto);
+
+        // Add rack details
+        RackDTO rackDto = new RackDTO();
+        rackDto.setId(book.getRack().getId());
+        rackDto.setRackNumber(book.getRack().getRackNumber());
+        rackDto.setBlockId(book.getRack().getBlock().getId());
+        bookDto.setRack(rackDto);
+
+        return bookDto;
     }
 
-    @Override
-    public Book updateBook(Long id, Book book) {
-        Book existingBook = getBookById(id);
-        existingBook.setTitle(book.getTitle());
-        existingBook.setAuthor(book.getAuthor());
-        existingBook.setPrice(book.getPrice());
-        return bookRepository.save(existingBook);
-    }
+//    @Override
+//    public BookDTO updateBook(Long id, BookDTO book) {
+//        BookDTO existingBook = getBookById(id);
+//        existingBook.setTitle(book.getTitle());
+//        existingBook.setAuthor(book.getAuthor());
+//        existingBook.setPrice(book.getPrice());
+//        return bookRepository.save(existingBook);
+//    }
 
     @Override
     @Transactional

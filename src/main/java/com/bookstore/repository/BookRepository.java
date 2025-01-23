@@ -15,4 +15,6 @@ public interface BookRepository extends JpaRepository<Book, Long> {
 
     @Query("SELECT b FROM Book b WHERE b.id = :id AND b.status = 'ACTIVE'")
     Optional<Book> findActiveBookById(@Param("id") Long id);
+
+//    List<Book> findAllActiveBooks();
 }

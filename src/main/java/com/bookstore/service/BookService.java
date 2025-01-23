@@ -1,20 +1,21 @@
 package com.bookstore.service;
 
+import com.bookstore.dto.BookDTO;
 import com.bookstore.model.Book;
 
 import java.util.List;
 
 public interface BookService {
 
-    Book addBook(Book book);
+    BookDTO addBook(Book book);
 
     List<Book> getAllBooks();
 
-    Book getBookById(Long id);
+    BookDTO getBookById(Long id);
 
 //   Book allocateBookToRack(Long id, Long rackId);
 
-    Book updateBook(Long id, Book book);
+//    BookDTO updateBook(Long id, BookDTO book);
 
     Boolean deleteBook(Long id);
 

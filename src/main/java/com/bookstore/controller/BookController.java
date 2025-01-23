@@ -1,5 +1,6 @@
 package com.bookstore.controller;
 
+import com.bookstore.dto.BookDTO;
 import com.bookstore.model.Book;
 import com.bookstore.service.BookService;
 import com.bookstore.util.BaseResponse;
@@ -24,10 +25,10 @@ public class BookController {
     }
 
     @PostMapping
-    public ResponseEntity<BaseResponse<Book>> addBook(@RequestBody Book book) {
+    public ResponseEntity<BaseResponse<BookDTO>> addBook(@RequestBody Book book) {
         String requestId = null;
         try {
-            Book savedBook = bookService.addBook(book);
+            BookDTO savedBook = bookService.addBook(book);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new BaseResponse<>(
@@ -140,15 +141,15 @@ public class BookController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<BaseResponse<Book>> getBookById(@PathVariable Long id) {
+    public ResponseEntity<BaseResponse<BookDTO>> getBookById(@PathVariable Long id) {
         String requestId = null;
         try {
             Validation.validateId(id);
-            Book book = bookService.getBookById(id);
+            BookDTO bookdto = bookService.getBookById(id);
             return ResponseEntity.ok(
                     new BaseResponse<>(
                             requestId,
-                            book,
+                            bookdto,
                             new BaseResponse.ResponseMessage("200", "Book retrieved successfully.", null)
                     )
             );
@@ -163,29 +164,29 @@ public class BookController {
         }
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<BaseResponse<Book>> updateBook(@PathVariable Long id, @RequestBody Book book) {
-        String requestId = null;
-        try {
-            Book updatedBook = bookService.updateBook(id, book);
-            return ResponseEntity.ok(
-                    new BaseResponse<>(
-                            requestId,
-                            updatedBook,
-                            new BaseResponse.ResponseMessage("200", "Book updated successfully.", null)
-                    )
-            );
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
-                    new BaseResponse<>(
-                            requestId,
-                            null,
-                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
-                    )
-            );
-        }
-    }
-
+//    @PutMapping("/{id}")
+//    public ResponseEntity<BaseResponse<Book>> updateBook(@PathVariable Long id, @RequestBody Book book) {
+//        String requestId = null;
+//        try {
+//            Book updatedBook = bookService.updateBook(id, book);
+//            return ResponseEntity.ok(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            updatedBook,
+//                            new BaseResponse.ResponseMessage("200", "Book updated successfully.", null)
+//                    )
+//            );
+//        } catch (RuntimeException e) {
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+//                    new BaseResponse<>(
+//                            requestId,
+//                            null,
+//                            new BaseResponse.ResponseMessage("400", e.getMessage(), null)
+//                    )
+//            );
+//        }
+//    }
+//
     @DeleteMapping("/{id}")
     public ResponseEntity<BaseResponse<String>> deleteBook(@PathVariable Long id) {
         String requestId = null;
