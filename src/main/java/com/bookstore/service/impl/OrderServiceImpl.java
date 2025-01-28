@@ -47,7 +47,6 @@ public class OrderServiceImpl implements OrderService {
                 .orElseThrow(() -> new OrderNotFoundException("Order not found with ID: " + id));
     }
 
-
     @Override
     @Transactional
     public OrderDTO placeOrder(Order order) {
@@ -72,82 +71,53 @@ public class OrderServiceImpl implements OrderService {
 
         List<OrderBookDTO> orderBookDTOList = new ArrayList<>();
 
-        // Save each book in the order_books table with book_name
-        order.getBooks().forEach(book-> {
+        // Process each book in the order
+        order.getBooks().forEach(book -> {
+            // Fetch the persistent Book object from the database
             Book fetchedBook = bookRepository.findById(book.getId())
                     .orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + book.getId()));
+
             // Handle Warehouse
             Warehouse warehouse = null;
-            if (fetchedBook.getWarehouse() != null) { // Check if Warehouse is provided in the Book
-                if (fetchedBook.getWarehouse().getName() != null) {
-                    // Try to find the Warehouse by name
-                    warehouse = warehouseRepository.findByName(fetchedBook.getWarehouse().getName());
-                    if (warehouse == null) {
-                        // If no Warehouse exists, create a new one
-                        warehouse = new Warehouse();
-                        warehouse.setName(fetchedBook.getWarehouse().getName());
-                        warehouse.setLocation(fetchedBook.getWarehouse().getLocation());
-                        warehouse = warehouseRepository.save(warehouse); // Save the new Warehouse
-                    } else if (warehouse.getLocation() == null && fetchedBook.getWarehouse().getLocation() != null) {
-                        // Update existing Warehouse if location is missing
-                        warehouse.setLocation(fetchedBook.getWarehouse().getLocation());
-                        warehouse = warehouseRepository.save(warehouse); // Save the updated Warehouse
-                    }
-                    // Associate the Warehouse with the Book
-                    book.setWarehouse(warehouse);
+            if (fetchedBook.getWarehouse() != null && fetchedBook.getWarehouse().getName() != null) {
+                warehouse = warehouseRepository.findByName(fetchedBook.getWarehouse().getName());
+                if (warehouse == null) {
+                    warehouse = new Warehouse();
+                    warehouse.setName(fetchedBook.getWarehouse().getName());
+                    warehouse.setLocation(fetchedBook.getWarehouse().getLocation());
+                    warehouse = warehouseRepository.save(warehouse);
                 }
             }
-
             // Handle Block
-            Block block = blockRepository.findByNameAndWarehouseId(fetchedBook.getBlock().getName(),warehouse.getId());
+            Block block = null;
             if (fetchedBook.getBlock() != null && warehouse != null) {
                 block = blockRepository.findByNameAndWarehouseId(fetchedBook.getBlock().getName(), warehouse.getId());
                 if (block == null) {
                     block = new Block();
-                    block.setName(book.getBlock().getName());
-                    block.setWarehouse(warehouse); // Associate block with warehouse
-                    block = blockRepository.save(block); // Save block first
+                    block.setName(fetchedBook.getBlock().getName());
+                    block.setWarehouse(warehouse);
+                    block = blockRepository.save(block);
                 }
-                book.setBlock(block); // Associate the block with the book
             }
             // Handle Rack
             Rack rack = null;
-        // Check if the fetchedBook has a Rack and if the Block is valid
             if (fetchedBook.getRack() != null && block != null) {
-                // Try to find the rack by its rack number and block ID
                 rack = rackRepository.findByRackNumberAndBlockId(fetchedBook.getRack().getRackNumber(), block.getId());
-                // If the rack is not found, create a new one
                 if (rack == null) {
                     rack = new Rack();
-                    rack.setRackNumber(fetchedBook.getRack().getRackNumber()); // Use the fetchedBook's rack
-                    rack.setBlock(block); // Associate rack with block
-                    // Check if the book is null before associating
-                    if (fetchedBook == null) {
-                        throw new IllegalArgumentException("Book is null when trying to associate with the Rack.");
-                    }
-                    rack.setBook(fetchedBook); // Associate the rack with the book
-                    rack.setAvailable(false); // Mark the rack as unavailable
-                    rack = rackRepository.save(rack); // Save the new Rack
+                    rack.setRackNumber(fetchedBook.getRack().getRackNumber());
+                    rack.setBlock(block);
+                    rack.setBook(fetchedBook); // Associate persistent book
+                    rack.setAvailable(false);
+                    rack = rackRepository.save(rack);
                 } else {
-                    // If the rack exists, update it to associate with the new book
-                    if (fetchedBook == null) {
-                        throw new IllegalArgumentException("Book is null when trying to update the existing Rack.");
-                    }
-                    rack.setBook(fetchedBook); // Set the book to the existing rack
-                    rack.setAvailable(false); // Mark rack as unavailable
-                    rack = rackRepository.save(rack); // Save the updated Rack
+                    rack.setBook(fetchedBook); // Set the fetched persistent book
+                    rack.setAvailable(false);
+                    rack = rackRepository.save(rack);
                 }
-                // Finally, associate the rack with the book
-                fetchedBook.setRack(rack);
-            } else {
-                // Handle cases where Rack or Block is missing
-                if (fetchedBook.getRack() == null) {
-                    System.out.println("Rack information is missing for Book ID: " + fetchedBook.getId());
-                }
-                if (block == null) {
-                    System.out.println("Block information is missing for the Rack.");
-                }
+                fetchedBook.setRack(rack); // Associate the rack with the fetched book
             }
+
             // Create and set the OrderBookDTO
             OrderBookDTO orderBookDTO = new OrderBookDTO();
             orderBookDTO.setId(fetchedBook.getId());
@@ -159,7 +129,6 @@ public class OrderServiceImpl implements OrderService {
             orderBookDTO.setDescription(fetchedBook.getDescription());
             orderBookDTO.setStatus(fetchedBook.getStatus());
 
-            // Set Warehouse DTO
             if (warehouse != null) {
                 WarehouseDTO warehouseDTO = new WarehouseDTO();
                 warehouseDTO.setId(warehouse.getId());
@@ -168,24 +137,22 @@ public class OrderServiceImpl implements OrderService {
                 orderBookDTO.setWarehouse(warehouseDTO);
             }
 
-            // Set Block DTO
             if (block != null) {
                 BlockDTO blockDTO = new BlockDTO();
                 blockDTO.setId(block.getId());
                 blockDTO.setName(block.getName());
-                blockDTO.setWarehouseId(block.getWarehouse().getId()); // Pass warehouse ID
+                blockDTO.setWarehouseId(block.getWarehouse().getId());
                 orderBookDTO.setBlock(blockDTO);
             }
 
-            // Set Rack DTO
             if (rack != null) {
                 RackDTO rackDTO = new RackDTO();
                 rackDTO.setId(rack.getId());
                 rackDTO.setRackNumber(rack.getRackNumber());
-                rackDTO.setBlockId(rack.getBlock().getId()); // Pass block ID
+                rackDTO.setBlockId(rack.getBlock().getId());
                 orderBookDTO.setRack(rackDTO);
             }
-            // Add to the DTO list for response
+
             orderBookDTOList.add(orderBookDTO);
 
             // Create and save the OrderBook entity
@@ -194,16 +161,17 @@ public class OrderServiceImpl implements OrderService {
             orderBooks.setBook(fetchedBook);
             orderBooks.setBookName(fetchedBook.getTitle());
             orderBooksRepository.save(orderBooks);
+
+            // **Delete the book from the book table**
+//            bookRepository.delete(fetchedBook);
         });
 
         // Convert OrderBookDTO to BookDTO for the OrderDTO
         List<BookDTO> bookDTOList = orderBookDTOList.stream()
-                .map(this::convertToBookDTO) // Convert each OrderBookDTO to BookDTO
+                .map(this::convertToBookDTO)
                 .collect(Collectors.toList());
 
-        // Set the books in the OrderDTO
         orderDTO.setBooks(bookDTOList);
-
         return orderDTO;
     }
 
