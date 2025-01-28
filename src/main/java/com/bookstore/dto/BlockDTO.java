@@ -1,10 +1,20 @@
 package com.bookstore.dto;
 
+import lombok.Data;
+
+@Data
 public class BlockDTO {
 
     private Long id;
     private String name;
     private Long warehouseId;
+
+    public BlockDTO(Long id, String name) {
+    }
+
+    public BlockDTO() {
+
+    }
 
     public Long getId() {
         return id;

@@ -23,6 +23,25 @@ public class Rack {
     @Column(name = "is_available", nullable = false)
     private Boolean isAvailable = true;
 
+    @Column(name = "current_load", nullable = false)
+    private Integer currentLoad = 0;
+
+    public Integer getCurrentLoad() {
+        return currentLoad;
+    }
+
+    public void setCurrentLoad(Integer currentLoad) {
+        this.currentLoad = currentLoad;
+    }
+
+    public Boolean getAvailable() {
+        return isAvailable;
+    }
+
+    public void setAvailable(Boolean available) {
+        isAvailable = available;
+    }
+
     public Rack() {
     }
 
@@ -48,14 +67,6 @@ public class Rack {
 
     public void setBlock(Block block) {
         this.block = block;
-    }
-
-    public Boolean getIsAvailable() {
-        return isAvailable;
-    }
-
-    public void setIsAvailable(Boolean isAvailable) {
-        this.isAvailable = isAvailable;
     }
 
     public Book getBook() {

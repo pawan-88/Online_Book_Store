@@ -17,9 +17,13 @@ import java.util.Map;
 @RequestMapping("/api/books")
 public class BookController {
 
-    private final BookService bookService;
+    private BookService bookService;
 
     @Autowired
+    public void BookController(BookService bookService) {
+        this.bookService = bookService;
+    }
+
     public BookController(BookService bookService) {
         this.bookService = bookService;
     }

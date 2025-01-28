@@ -1,11 +1,9 @@
 package com.bookstore.dto;
 
-import lombok.Data;
-
 import java.time.LocalDate;
 
-@Data
-public class BookDTO {
+public class OrderBookDTO {
+
     private Long id;
     private String title;
     private String author;
@@ -17,24 +15,6 @@ public class BookDTO {
     private BlockDTO block;
     private RackDTO rack;
     private String status;
-
-    public BookDTO(Long id, String title, String author, double price, String description, String publisher, LocalDate publicationDate, WarehouseDTO warehouse, BlockDTO block, RackDTO rack, String status) {
-        this.id = id;
-        this.title = title;
-        this.author = author;
-        this.price = price;
-        this.description = description;
-        this.publisher = publisher;
-        this.publicationDate = publicationDate;
-        this.warehouse = warehouse;
-        this.block = block;
-        this.rack = rack;
-        this.status = status;
-    }
-
-    public BookDTO() {
-
-    }
 
     public Long getId() {
         return id;
@@ -84,20 +64,20 @@ public class BookDTO {
         this.publisher = publisher;
     }
 
-    public LocalDate getPublicationDate() {
-        return publicationDate;
-    }
-
-    public void setPublicationDate(LocalDate publicationDate) {
-        this.publicationDate = publicationDate;
-    }
-
     public WarehouseDTO getWarehouse() {
         return warehouse;
     }
 
     public void setWarehouse(WarehouseDTO warehouse) {
         this.warehouse = warehouse;
+    }
+
+    public LocalDate getPublicationDate() {
+        return publicationDate;
+    }
+
+    public void setPublicationDate(LocalDate publicationDate) {
+        this.publicationDate = publicationDate;
     }
 
     public BlockDTO getBlock() {
@@ -124,5 +104,3 @@ public class BookDTO {
         this.status = status;
     }
 }
-
-

@@ -74,12 +74,12 @@ public class BookServiceImpl implements BookService {
             rack.setRackNumber(book.getRack().getRackNumber());
             rack.setBlock(block); // Associate rack with block
             rack.setBook(book);   // Associate rack with book
-            rack.setIsAvailable(false); // Rack is now associated with a book, mark as unavailable
+            rack.setAvailable(false); // Rack is now associated with a book, mark as unavailable
             rack = rackRepository.save(rack); // Save the new Rack
         } else {
             // Update the existing Rack to associate with the new Book
             rack.setBook(book);    // Set the new book
-            rack.setIsAvailable(false); // Mark rack as unavailable
+            rack.setAvailable(false); // Mark rack as unavailable
             rack = rackRepository.save(rack); // Save the updated Rack
         }
 

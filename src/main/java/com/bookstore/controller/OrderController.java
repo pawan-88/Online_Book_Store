@@ -1,7 +1,9 @@
 package com.bookstore.controller;
 
+import com.bookstore.dto.OrderDTO;
 import com.bookstore.model.Order;
 import com.bookstore.service.OrderService;
+import com.bookstore.service.impl.OrderServiceImpl;
 import com.bookstore.util.BaseResponse;
 import com.bookstore.util.Validation;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,16 +20,16 @@ public class OrderController {
     private final OrderService orderService;
 
     @Autowired
-    public OrderController(OrderService orderService) {
+    public OrderController(OrderService orderService, OrderServiceImpl orderServiceImpl) {
         this.orderService = orderService;
     }
 
     @PostMapping
-    public ResponseEntity<BaseResponse<Order>> placeOrder(@RequestBody Order order) {
+    public ResponseEntity<BaseResponse<OrderDTO>> placeOrder(@RequestBody Order order) {
         String requestId = null;
         try {
             Validation.validateOrder(order);
-            Order placedOrder = orderService.placeOrder(order);
+            OrderDTO placedOrder = orderService.placeOrder(order);
 
             return ResponseEntity.status(HttpStatus.CREATED).body(
                     new BaseResponse<>(

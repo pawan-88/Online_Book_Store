@@ -1,10 +1,20 @@
 package com.bookstore.dto;
 
+import lombok.Data;
+
+@Data
 public class RackDTO {
 
     private Long id;
     private String rackNumber;
     private Long blockId;
+
+    public RackDTO(Long id, String rackNumber) {
+    }
+
+    public RackDTO() {
+
+    }
 
     public Long getId() {
         return id;
