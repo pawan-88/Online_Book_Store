@@ -76,13 +76,23 @@ public class BookServiceImpl implements BookService {
             rack.setBook(book);   // Associate rack with book
             rack.setAvailable(false); // Rack is now associated with a book, mark as unavailable
             rack = rackRepository.save(rack); // Save the new Rack
-        } else {
+        }
+        else {
             // Update the existing Rack to associate with the new Book
             rack.setBook(book);    // Set the new book
             rack.setAvailable(false); // Mark rack as unavailable
             rack = rackRepository.save(rack); // Save the updated Rack
         }
-
+        // Check rack availability based on warehouse size (fixed size logic for warehouses A and B)
+        if ("A".equals(warehouse.getName())) {
+            if (rack.getCurrentLoad() >= 10) { // Example: max of 10 books per rack in Warehouse A
+                throw new RuntimeException("Rack in Warehouse A is full");
+            }
+        } else if ("B".equals(warehouse.getName())) {
+            if (rack.getCurrentLoad() >= 5) { // Example: max of 5 books per rack in Warehouse B
+                throw new RuntimeException("Rack in Warehouse B is full");
+            }
+        }
         // Associate saved entities with the Book
         book.setWarehouse(warehouse);
         book.setBlock(block);
@@ -102,6 +112,7 @@ public class BookServiceImpl implements BookService {
         bookDTO.setPublisher(savedBook.getPublisher());
         bookDTO.setPublicationDate(savedBook.getPublicationDate());
         bookDTO.setStatus(savedBook.getStatus());
+
         // Set Warehouse DTO
         WarehouseDTO warehouseDTO = new WarehouseDTO();
         warehouseDTO.setId(warehouse.getId());

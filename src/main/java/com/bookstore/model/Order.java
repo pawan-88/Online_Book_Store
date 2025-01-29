@@ -3,6 +3,7 @@ package com.bookstore.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -22,6 +23,17 @@ public class Order {
     private List<Book> books;
 
     private double totalPrice;
+
+    @Column(nullable = false)
+    private LocalDateTime orderDate = LocalDateTime.now();
+
+    public LocalDateTime getOrderDate() {
+        return orderDate;
+    }
+
+    public void setOrderDate(LocalDateTime orderDate) {
+        this.orderDate = orderDate;
+    }
 
     public Long getId() {
         return id;

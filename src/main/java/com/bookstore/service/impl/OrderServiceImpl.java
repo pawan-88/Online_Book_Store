@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,29 +54,29 @@ public class OrderServiceImpl implements OrderService {
         // Validate the order
         Validation.validateOrder(order);
 
-        // Calculate total price based on the books in the order
-        double totalPrice = order.getBooks().stream()
-                .map(book -> bookRepository.findById(book.getId())
-                        .orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + book.getId())))
-                .mapToDouble(Book::getPrice)
-                .sum();
-        order.setTotalPrice(totalPrice);
-
-        // Save the order
-        Order savedOrder = orderRepository.save(order);
-
-        // Create the OrderDTO to store books and other details
-        OrderDTO orderDTO = new OrderDTO();
-        orderDTO.setId(savedOrder.getId());
-        orderDTO.setTotalPrice(savedOrder.getTotalPrice());
-
         List<OrderBookDTO> orderBookDTOList = new ArrayList<>();
+        double totalPrice = 0;
 
         // Process each book in the order
-        order.getBooks().forEach(book -> {
+        for (Book book : order.getBooks()) {
             // Fetch the persistent Book object from the database
             Book fetchedBook = bookRepository.findById(book.getId())
                     .orElseThrow(() -> new BookNotFoundException("Book not found with ID: " + book.getId()));
+
+            // **Check if the book is already ordered (INACTIVE)**
+            if ("INACTIVE".equalsIgnoreCase(fetchedBook.getStatus())) {
+                throw new RuntimeException("Book with ID " + fetchedBook.getId() + " has already been ordered and cannot be purchased again.");
+            }
+
+            // Log to ensure book title is not null
+            System.out.println("Fetched Book ID: " + fetchedBook.getId() + ", Title: " + fetchedBook.getTitle());
+
+            // Update book status to INACTIVE after ordering
+            fetchedBook.setStatus("INACTIVE");
+            bookRepository.save(fetchedBook);
+
+            // Calculate total price
+            totalPrice += fetchedBook.getPrice();
 
             // Handle Warehouse
             Warehouse warehouse = null;
@@ -88,6 +89,7 @@ public class OrderServiceImpl implements OrderService {
                     warehouse = warehouseRepository.save(warehouse);
                 }
             }
+
             // Handle Block
             Block block = null;
             if (fetchedBook.getBlock() != null && warehouse != null) {
@@ -99,6 +101,7 @@ public class OrderServiceImpl implements OrderService {
                     block = blockRepository.save(block);
                 }
             }
+
             // Handle Rack
             Rack rack = null;
             if (fetchedBook.getRack() != null && block != null) {
@@ -107,15 +110,15 @@ public class OrderServiceImpl implements OrderService {
                     rack = new Rack();
                     rack.setRackNumber(fetchedBook.getRack().getRackNumber());
                     rack.setBlock(block);
-                    rack.setBook(fetchedBook); // Associate persistent book
+                    rack.setBook(fetchedBook);
                     rack.setAvailable(false);
                     rack = rackRepository.save(rack);
                 } else {
-                    rack.setBook(fetchedBook); // Set the fetched persistent book
+                    rack.setBook(fetchedBook);
                     rack.setAvailable(false);
                     rack = rackRepository.save(rack);
                 }
-                fetchedBook.setRack(rack); // Associate the rack with the fetched book
+                fetchedBook.setRack(rack);
             }
 
             // Create and set the OrderBookDTO
@@ -155,25 +158,46 @@ public class OrderServiceImpl implements OrderService {
 
             orderBookDTOList.add(orderBookDTO);
 
-            // Create and save the OrderBook entity
-            OrderBook orderBooks = new OrderBook();
-            orderBooks.setOrder(savedOrder);
-            orderBooks.setBook(fetchedBook);
-            orderBooks.setBookName(fetchedBook.getTitle());
-            orderBooksRepository.save(orderBooks);
+            // Check if an entry for this order and book already exists
+            Optional<OrderBook> existingOrderBook = orderBooksRepository.findByOrderIdAndBookId(order.getId(), fetchedBook.getId());
+            if (existingOrderBook.isPresent()) {
+                System.out.println("Duplicate entry detected for book ID: " + fetchedBook.getId() + " and order ID: " + order.getId());
+            } else {
+                // Create and save the OrderBook entity
+                OrderBook orderBooks = new OrderBook();
+                orderBooks.setOrder(order);
+                orderBooks.setBook(fetchedBook);
+                orderBooks.setBookName(fetchedBook.getTitle()); // Ensure title is set correctly
+                System.out.println("Storing book_name in order_books: " + fetchedBook.getTitle());
+                orderBooksRepository.save(orderBooks);
+            }
+        }
 
-            // **Delete the book from the book table**
-//            bookRepository.delete(fetchedBook);
-        });
+        // Save the order with total price
+        order.setTotalPrice(totalPrice);
+        Order savedOrder = orderRepository.save(order);
+
+        for (Book book : order.getBooks()) {
+            OrderBook orderBook = new OrderBook();
+            orderBook.setOrder(savedOrder); // Use the saved Order entity
+            orderBook.setBook(book);
+            // ... other OrderBook properties
+            orderBooksRepository.save(orderBook);
+        }
 
         // Convert OrderBookDTO to BookDTO for the OrderDTO
         List<BookDTO> bookDTOList = orderBookDTOList.stream()
                 .map(this::convertToBookDTO)
                 .collect(Collectors.toList());
 
+        OrderDTO orderDTO = new OrderDTO();
+        orderDTO.setId(savedOrder.getId());
+        orderDTO.setTotalPrice(savedOrder.getTotalPrice());
         orderDTO.setBooks(bookDTOList);
+
         return orderDTO;
     }
+
 
     private BookDTO convertToBookDTO(OrderBookDTO orderBookDTO) {
         BookDTO bookDTO = new BookDTO();
