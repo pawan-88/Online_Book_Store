@@ -20,11 +20,11 @@ public class Book {
     @JsonFormat(pattern = "dd-MM-yyyy") // Ensure date format matches the input
     private LocalDate publicationDate;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "warehouse_id" , nullable = false)
     private Warehouse warehouse;
 
-    @ManyToOne(cascade = CascadeType.ALL)
+    @ManyToOne(cascade = CascadeType.MERGE)
     @JoinColumn(name = "block_id" , nullable = false)
     private Block block;
 

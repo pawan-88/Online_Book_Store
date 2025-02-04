@@ -1,5 +1,7 @@
 package com.bookstore.dto;
 
+import com.bookstore.model.Book;
+
 import java.time.LocalDate;
 
 public class OrderBookDTO {
@@ -15,6 +17,13 @@ public class OrderBookDTO {
     private BlockDTO block;
     private RackDTO rack;
     private String status;
+
+    public OrderBookDTO(Book book) {
+        this.price = price;
+    }
+
+    public OrderBookDTO() {
+    }
 
     public Long getId() {
         return id;

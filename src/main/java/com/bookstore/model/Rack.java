@@ -26,6 +26,13 @@ public class Rack {
     @Column(name = "current_load", nullable = false)
     private Integer currentLoad = 0;
 
+    public Rack(String rackNumber, Block block, Book book, Boolean isAvailable) {
+        this.rackNumber = rackNumber;
+        this.block = block;
+        this.book = book;
+        this.isAvailable = isAvailable;
+    }
+
     public Integer getCurrentLoad() {
         return currentLoad;
     }

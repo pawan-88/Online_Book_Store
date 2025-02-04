@@ -14,12 +14,14 @@ public class OrderBook {
     @JoinColumn(name = "order_id", nullable = false)
     private Order order;
 
-    @ManyToOne
+    @ManyToOne(cascade = CascadeType.PERSIST)
     @JoinColumn(name = "book_id", nullable = false)
     private Book book;
 
-    @Column(name = "book_name", nullable = false)
+    @Column(name = "book_name")
     private String bookName;
+
+    public OrderBook() {}
 
     public Long getId() {
         return id;

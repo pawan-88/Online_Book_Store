@@ -19,6 +19,11 @@ public class Block {
     public Block() {
     }
 
+    public Block(String name, Warehouse warehouse) {
+        this.name = name;
+        this.warehouse = warehouse;
+    }
+
     public Long getId() {
         return id;
     }

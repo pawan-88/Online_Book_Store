@@ -6,6 +6,9 @@ import com.bookstore.exception.InvalidInputException;
 import com.bookstore.exception.OrderNotFoundException;
 import com.bookstore.model.*;
 import com.bookstore.repository.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.bookstore.service.OrderService;
 import com.bookstore.util.Validation;
 import jakarta.transaction.Transactional;
@@ -13,12 +16,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
 public class OrderServiceImpl implements OrderService {
+
+    private static final Logger log = LoggerFactory.getLogger(OrderServiceImpl.class);
 
     private final OrderRepository orderRepository;
     private final BookRepository bookRepository;
@@ -54,6 +60,9 @@ public class OrderServiceImpl implements OrderService {
         // Validate the order
         Validation.validateOrder(order);
 
+        // Save the order first to generate its ID
+        Order savedOrder = orderRepository.save(order);
+
         List<OrderBookDTO> orderBookDTOList = new ArrayList<>();
         double totalPrice = 0;
 
@@ -77,6 +86,7 @@ public class OrderServiceImpl implements OrderService {
 
             // Calculate total price
             totalPrice += fetchedBook.getPrice();
+
 
             // Handle Warehouse
             Warehouse warehouse = null;
@@ -156,43 +166,35 @@ public class OrderServiceImpl implements OrderService {
                 orderBookDTO.setRack(rackDTO);
             }
 
+            // Add the BookDTO to the orderBookDTOList
             orderBookDTOList.add(orderBookDTO);
 
-            // Check if an entry for this order and book already exists
-            Optional<OrderBook> existingOrderBook = orderBooksRepository.findByOrderIdAndBookId(order.getId(), fetchedBook.getId());
-            if (existingOrderBook.isPresent()) {
-                System.out.println("Duplicate entry detected for book ID: " + fetchedBook.getId() + " and order ID: " + order.getId());
+            // Create and link the OrderBook with a valid Book reference
+            OrderBook orderBook = new OrderBook();
+            orderBook.setOrder(savedOrder);  // Set the existing order reference
+            orderBook.setBook(fetchedBook);  // Link the Book entity properly
+            orderBook.setBookName(fetchedBook.getTitle());  // Ensure book name is set
+
+            // Save the OrderBook
+            if (fetchedBook.getId() != null) {
+                orderBooksRepository.save(orderBook);  // Ensure book is correctly linked
             } else {
-                // Create and save the OrderBook entity
-                OrderBook orderBooks = new OrderBook();
-                orderBooks.setOrder(order);
-                orderBooks.setBook(fetchedBook);
-                orderBooks.setBookName(fetchedBook.getTitle()); // Ensure title is set correctly
-                System.out.println("Storing book_name in order_books: " + fetchedBook.getTitle());
-                orderBooksRepository.save(orderBooks);
+                throw new BookNotFoundException("Book ID is null or not found");
             }
         }
 
-        // Save the order with total price
-        order.setTotalPrice(totalPrice);
-        Order savedOrder = orderRepository.save(order);
+        // Update the total price and save the order
+        savedOrder.setTotalPrice(totalPrice);
+        orderRepository.save(savedOrder);
 
-        for (Book book : order.getBooks()) {
-            OrderBook orderBook = new OrderBook();
-            orderBook.setOrder(savedOrder); // Use the saved Order entity
-            orderBook.setBook(book);
-            // ... other OrderBook properties
-            orderBooksRepository.save(orderBook);
-        }
-
-        // Convert OrderBookDTO to BookDTO for the OrderDTO
+        // Convert OrderBookDTO to BookDTO
         List<BookDTO> bookDTOList = orderBookDTOList.stream()
                 .map(this::convertToBookDTO)
                 .collect(Collectors.toList());
 
         OrderDTO orderDTO = new OrderDTO();
         orderDTO.setId(savedOrder.getId());
-        orderDTO.setTotalPrice(savedOrder.getTotalPrice());
+        orderDTO.setTotalPrice(savedOrder.getTotalPrice());  // Make sure the correct price is set
         orderDTO.setBooks(bookDTOList);
 
         return orderDTO;

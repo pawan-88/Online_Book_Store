@@ -12,10 +12,12 @@ public class OrderDTO {
     private List<BookDTO> books;
 
     // Constructor
-    public OrderDTO(Long id, List<BookDTO> books, Double totalPrice) {
+
+
+    public OrderDTO(Long id, Double totalPrice, List<BookDTO> books) {
         this.id = id;
-        this.books = books;
         this.totalPrice = totalPrice;
+        this.books = books;
     }
 
     public OrderDTO() {

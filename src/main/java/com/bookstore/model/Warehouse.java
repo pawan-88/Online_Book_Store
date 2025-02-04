@@ -17,6 +17,11 @@ public class Warehouse {
     public Warehouse() {
     }
 
+    public Warehouse(String name, String location) {
+        this.name = name;
+        this.location = location;
+    }
+
     public Long getId() {
         return id;
     }
