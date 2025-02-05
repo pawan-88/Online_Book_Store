@@ -8,17 +8,13 @@ import com.bookstore.model.*;
 import com.bookstore.repository.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
 import com.bookstore.service.OrderService;
 import com.bookstore.util.Validation;
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service

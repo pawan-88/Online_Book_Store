@@ -10,8 +10,11 @@ import java.util.Optional;
 
 public interface BookRepository extends JpaRepository<Book, Long> {
 
-    List<Book> findByTitleContainingIgnoreCase(String title);
-    List<Book> findByAuthorContainingIgnoreCase(String author);
+    @Query(value = "SELECT * FROM book WHERE LOWER(title) LIKE LOWER(CONCAT('%', :title, '%'))", nativeQuery = true)
+    List<Book> findByTitleContainingIgnoreCase(@Param("title") String title);
+
+    @Query(value = "SELECT * FROM book WHERE LOWER(author) LIKE LOWER(CONCAT('%', :author, '%'))", nativeQuery = true)
+    List<Book> findByAuthorContainingIgnoreCase(@Param("author") String author);
 
     @Query("SELECT b FROM Book b WHERE b.id = :id AND b.status = 'ACTIVE'")
     Optional<Book> findActiveBookById(@Param("id") Long id);
